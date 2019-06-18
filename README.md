@@ -22,6 +22,7 @@ Compare and evaluate ICESat-2 data with high resolution DEMs (airborne lidar/sat
 
 ### Tasks
 - Learn how to download the ICESat-2 data by lat lon bounding box
+- Create library with some basic convenience functions
 - Explore [OpenAltimetry](https://openaltimetry.org/data/icesat2/) and utility with multiple locations and time periods
 - Explore ATL03 and ATL06 products and [theoretical](https://icesat-2.gsfc.nasa.gov/sites/default/files/page_files/ICESat2_ATL06_ATBD_r001.pdf) basis
 - Learn how to subset ATL03 and ATL06 data based on flags
