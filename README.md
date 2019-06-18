@@ -13,6 +13,7 @@ Compare and evaluate ICESat-2 data with high resolution DEMs (airborne lidar/sat
 - [WADNR Lidar](http://lidarportal.dnr.wa.gov/)
 - [ASO Lidar](https://nsidc.org/data/aso)
 - [Himat DEMs](https://nsidc.org/the-drift/data-update/high-mountain-asia-8-meter-digital-elevation-models-now-available/)
+- [Jemez, NM CZO] (link)
 - DEM from H.P. and Justin (add)
 
 ### Tools
