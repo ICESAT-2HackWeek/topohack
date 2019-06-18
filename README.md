@@ -7,7 +7,7 @@ Compare and evaluate ICESat-2 data with high resolution DEMs (airborne lidar/sat
 ### Datasets
 - ICESat-2 ATL06 (20 m resolution)
 - ICESat-2 ATL03 (geolocated points along track)
-- Bareground data ([LULC for US](https://www.mrlc.gov/data/legends/national-land-cover-database-2011-nlcd2011-legend), [Global Bareground Data Product for areas outside US](https://glad.umd.edu/dataset/global-2010-bare-ground-30-m) (
+- Bareground data ([LULC for US](https://www.mrlc.gov/data/legends/national-land-cover-database-2011-nlcd2011-legend), [Global Bareground Data Product for areas outside US](https://glad.umd.edu/dataset/global-2010-bare-ground-30-m))
 
 ### Validation Datasets
 - [WADNR Lidar](http://lidarportal.dnr.wa.gov/)
