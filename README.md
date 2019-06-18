@@ -26,7 +26,8 @@ Compare and evaluate ICESat-2 data with high resolution DEMs (airborne lidar/sat
 - Learn how to subset ATL03 and ATL06 data based on flags
 - Intersect ICESat-2 tracks with [RGI glacier polygons](https://www.glims.org/RGI/) to get a sense of bare ground coverage near glaciers.
 - Evaluate/Compare the topography resolved by ICESat-2 profiles along steep mountains with topographic profiles returned from high-resolution DEMs.
-- Get a sense of snow accumulation (depth) by comparing Snow-off DEM over Grand Mesa with winter (October to February) IceSat-2 collects. 
+- Get a sense of snow accumulation (depth) by comparing Snow-off DEM over Grand Mesa with winter (October to February) IceSat-2 collects.
+- Create notebook that shows how to pull all cloud-free data for entire mission for target area bounding box.
 ### Study Sites:
 - Dependent on ICESat-2 coverage.
 - Potential study sites: Cascades and Olympic Ranges (western WA), Rocky Mountains (CO), High Mountain Asia, Grand Mesa (CO)
