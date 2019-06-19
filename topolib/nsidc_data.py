@@ -381,6 +381,6 @@ class IceSat2Data:
         if len(subagent) < 1:
             agent = 'NO'
         else:
-            print(subagent)
+            pprint.pprint(subagent)
 
-        print(variable_vals)
+        pprint.pprint(variable_vals)
