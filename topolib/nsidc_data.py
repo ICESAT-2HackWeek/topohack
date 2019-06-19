@@ -58,6 +58,14 @@ class IceSat2Data:
         self.session = EarthData(user_id, password)
         self.product_name = kwargs.get('product', self.PRODUCT_NAME)
         self.product_version_id = self.latest_version_id()
+        self.test_authentication()
+
+    def test_authentication(self):
+        """
+        Check whether the given authentication combination is valid
+        """
+        if self.session.get(self.DATA_REQUEST_URL).status_code != 200:
+            print('ERROR: Could not authorize with EarthData successfully')
 
     def latest_version_id(self):
         """
