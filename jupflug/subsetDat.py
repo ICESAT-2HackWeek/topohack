@@ -16,4 +16,4 @@ def subsetBBox(rast,proj_in,proj_out):
 
         [Left,Bottom] = transform(incord,outcord,L,B)
         [Right,Top] = transform(incord,outcord,R,T)
-        return Left, Right, Top, Bottom
+        return Left, Bottom, Right, Top
