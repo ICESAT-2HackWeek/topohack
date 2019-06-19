@@ -2,6 +2,7 @@ import io
 import json
 import math
 import pprint
+import time
 import zipfile
 from statistics import mean
 from xml.etree import ElementTree
@@ -235,13 +236,13 @@ class IceSat2Data:
 
         bounding_box = self.bounding_box_params(bounding_box)
 
-        time = self.time_range_params(start_date, end_date)
+        time_range = self.time_range_params(start_date, end_date)
 
         subset_params = {
             'short_name': self.product_name,
             'version': self.product_version_id,
-            'temporal': time,
-            'time': time.replace('Z', ''),
+            'temporal': time_range,
+            'time': time_range.replace('Z', ''),
             'bounding_box': bounding_box,
             'bbox': bounding_box,
             'Coverage': self.coverage_variables(),
@@ -290,7 +291,7 @@ class IceSat2Data:
 
             # Raise bad request: Loop will stop for bad response code.
             request_response.raise_for_status()
-            request_root = ET.fromstring(request_response.content)
+            request_root = ElementTree.fromstring(request_response.content)
             statuslist = []
             for status in request_root.findall("./requestStatus/"):
                 statuslist.append(status.text)
@@ -306,7 +307,7 @@ class IceSat2Data:
 
                 # Raise bad request: Loop will stop for bad response code.
                 loop_response.raise_for_status()
-                loop_root = ET.fromstring(loop_response.content)
+                loop_root = ElementTree.fromstring(loop_response.content)
 
                 # Find status
                 statuslist = []
