@@ -9,4 +9,5 @@ setup(name='topolib',
       author_email='email@address.com',
       url='https://github.com/ICESAT-2HackWeek/topohack',
       packages=['topolib'],
+      install_requires=['requests']
      )

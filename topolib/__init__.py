@@ -1,3 +1,5 @@
+from .earth_data import EarthData
+
 __all__ = [
-    'sample_function',
+    'EarthData',
 ]
