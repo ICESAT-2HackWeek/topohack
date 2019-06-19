@@ -106,6 +106,13 @@ class IceSat2Data:
 
         return f'{start_date}T{start_time}Z,{end_date}T{end_time}Z'
 
+    @staticmethod
+    def bounding_box_params(bounding_box):
+        return f"{bounding_box['LowerLeft_Lon']}," \
+            f"{bounding_box['LowerLeft_Lat']}," \
+            f"{bounding_box['UpperRight_Lon']}," \
+            f"{bounding_box['UpperRight_Lat']}"
+
     def search_granules(self, start_date, end_date, **kwargs):
         temporal = self.time_range_params(start_date, end_date)
 
@@ -117,7 +124,9 @@ class IceSat2Data:
                 'temporal': temporal,
                 'page_size': 100,
                 'page_num': 1,
-                'bounding_box': ','.join(kwargs.get('bounding_box').values()),
+                'bounding_box': self.bounding_box_params(
+                    kwargs.get('bounding_box')
+                ),
             }
         elif kwargs.get('polygon', None) is not None:
             # If polygon input (either via coordinate pairs or shapefile/KML/KMZ):
@@ -195,7 +204,8 @@ class IceSat2Data:
         # Loop requests by this value
         page_num = math.ceil(number_of_granules / self.ORDER_PAGE_SIZE)
 
-        bounding_box = ','.join(bounding_box.values())
+        bounding_box = self.bounding_box_params(bounding_box)
+
         time = self.time_range_params(start_date, end_date)
 
         subset_params = {
