@@ -2,6 +2,7 @@ import io
 import json
 import math
 import pprint
+import time
 import zipfile
 from statistics import mean
 from xml.etree import ElementTree
