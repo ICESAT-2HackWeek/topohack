@@ -58,6 +58,14 @@ class IceSat2Data:
         self.session = EarthData(user_id, password)
         self.product_name = kwargs.get('product', self.PRODUCT_NAME)
         self.product_version_id = self.latest_version_id()
+        self.test_authentication()
+
+    def test_authentication(self):
+        """
+        Check whether the given authentication combination is valid
+        """
+        if self.session.get(self.DATA_REQUEST_URL).status_code != 200:
+            print('ERROR: Could not authorize with EarthData successfully')
 
     def latest_version_id(self):
         """
@@ -98,7 +106,34 @@ class IceSat2Data:
 
         return f'{start_date}T{start_time}Z,{end_date}T{end_time}Z'
 
+    @staticmethod
+    def bounding_box_params(bounding_box):
+        """
+        Process a bounding box dictionary and returns a String as the NSIDC
+        API expect the parameter.
+
+        :param bounding_box:
+
+        :return: String - for API parameter
+        """
+        return f"{bounding_box['LowerLeft_Lon']}," \
+            f"{bounding_box['LowerLeft_Lat']}," \
+            f"{bounding_box['UpperRight_Lon']}," \
+            f"{bounding_box['UpperRight_Lat']}"
+
     def search_granules(self, start_date, end_date, **kwargs):
+        """
+        Search for granule with given dates and area.
+        The area can be a bounding box for now.
+
+        :param start_date:
+        :param end_date:
+        :param kwargs: bounding_box as dictionary.
+                       Required keys - LowerLeft_Lon, LowerLeft_Lat
+                                       UpperRight_Lon, UpperRight_Lat
+
+        :return:
+        """
         temporal = self.time_range_params(start_date, end_date)
 
         if kwargs.get('bounding_box', None) is not None:
@@ -109,7 +144,9 @@ class IceSat2Data:
                 'temporal': temporal,
                 'page_size': 100,
                 'page_num': 1,
-                'bounding_box': ','.join(kwargs.get('bounding_box').values()),
+                'bounding_box': self.bounding_box_params(
+                    kwargs.get('bounding_box')
+                ),
             }
         elif kwargs.get('polygon', None) is not None:
             # If polygon input (either via coordinate pairs or shapefile/KML/KMZ):
@@ -178,6 +215,15 @@ class IceSat2Data:
     def order_data(
             self, email, destination_folder, start_date, end_date, bounding_box
     ):
+        """
+        Submit a data order to the NSIDC.
+
+        :param email: Email address for notifications
+        :param destination_folder:  Folder to download the data to
+        :param start_date: Start date to search for data
+        :param end_date: End date for search data
+        :param bounding_box: Bounding box to constrain the search to
+        """
 
         number_of_granules = self.search_granules(
             start_date, end_date, bounding_box=bounding_box
@@ -187,7 +233,8 @@ class IceSat2Data:
         # Loop requests by this value
         page_num = math.ceil(number_of_granules / self.ORDER_PAGE_SIZE)
 
-        bounding_box = ','.join(bounding_box.values())
+        bounding_box = self.bounding_box_params(bounding_box)
+
         time = self.time_range_params(start_date, end_date)
 
         subset_params = {
@@ -292,48 +339,41 @@ class IceSat2Data:
             else:
                 print('Request failed.')
 
-    def show_capabilities(self):
+    @staticmethod
+    def convert_from_xml(variable):
+        return '/' + '/'.join(variable.attrib['value'].split(':'))
+
+    def show_variables(self):
         response = self.get_capabilities()
         root = ElementTree.fromstring(response.content)
 
-        # collect lists with each service option
-        subagent = [
-            subset_agent.attrib for subset_agent in root.iter('SubsetAgent')
-        ]
-
-        # variable subsetting
         variables = [
-            SubsetVariable.attrib for SubsetVariable in root.iter('SubsetVariable')
+            self.convert_from_xml(variable)
+            for variable in root.findall('.//SubsetVariable')
         ]
-        variables_raw = [variables[i]['value'] for i in range(len(variables))]
-        variables_join = [
-            ''.join(('/', v)) if v.startswith('/') == False else v for v in variables_raw
+
+        pprint.pprint(variables)
+
+    def show_formats(self):
+        response = self.get_capabilities()
+        root = ElementTree.fromstring(response.content)
+
+        formats = [
+            variable.attrib['value'] for variable in root.findall('.//Format')
         ]
-        variable_vals = [v.replace(':', '/') for v in variables_join]
+        formats.remove('')
+        formats.append('No reformatting')
 
-        # reformatting
-        # formats = [Format.attrib for Format in root.iter('Format')]
-        # format_vals = [formats[i]['value'] for i in range(len(formats))]
-        # format_vals.remove('')
+        pprint.pprint(formats)
 
-        # reprojection only applicable on ICESat-2 L3B products, yet to be available.
-        #
-        # # reformatting options that support reprojection
-        # normalproj = [Projections.attrib for Projections in root.iter('Projections')]
-        # format_proj = normalproj[0]['normalProj'].split(',')
-        # format_proj.remove('')
-        # format_proj.append('No reformatting')
-        #
-        # # reprojection options
-        # projections = [Projection.attrib for Projection in root.iter('Projection')]
-        # proj_vals = []
-        # for i in range(len(projections)):
-        #     if (projections[i]['value']) != 'NO_CHANGE':
-        #         proj_vals.append(projections[i]['value'])
+    def show_projections(self):
+        response = self.get_capabilities()
+        root = ElementTree.fromstring(response.content)
 
-        if len(subagent) < 1:
-            agent = 'NO'
-        else:
-            print(subagent)
+        projections = root.find('.//Projections').attrib['normalProj'].split(',')
+        projections.remove('')
+        projections.append('No change')
 
-        print(variable_vals)
+        print('WARNING - Currently not available')
+        print('  Only applicable on ICESat-2 L3B products')
+        pprint.pprint(projections)
