@@ -1,5 +1,5 @@
-notebooks/.ipynb_checkpoints/
 data/
+outputs/
 
 # Jupyter Notebook
 .ipynb_checkpoints
