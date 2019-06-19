@@ -108,12 +108,32 @@ class IceSat2Data:
 
     @staticmethod
     def bounding_box_params(bounding_box):
+        """
+        Process a bounding box dictionary and returns a String as the NSIDC
+        API expect the parameter.
+
+        :param bounding_box:
+
+        :return: String - for API parameter
+        """
         return f"{bounding_box['LowerLeft_Lon']}," \
             f"{bounding_box['LowerLeft_Lat']}," \
             f"{bounding_box['UpperRight_Lon']}," \
             f"{bounding_box['UpperRight_Lat']}"
 
     def search_granules(self, start_date, end_date, **kwargs):
+        """
+        Search for granule with given dates and area.
+        The area can be a bounding box for now.
+
+        :param start_date:
+        :param end_date:
+        :param kwargs: bounding_box as dictionary.
+                       Required keys - LowerLeft_Lon, LowerLeft_Lat
+                                       UpperRight_Lon, UpperRight_Lat
+
+        :return:
+        """
         temporal = self.time_range_params(start_date, end_date)
 
         if kwargs.get('bounding_box', None) is not None:
@@ -195,6 +215,15 @@ class IceSat2Data:
     def order_data(
             self, email, destination_folder, start_date, end_date, bounding_box
     ):
+        """
+        Submit a data order to the NSIDC.
+
+        :param email: Email address for notifications
+        :param destination_folder:  Folder to download the data to
+        :param start_date: Start date to search for data
+        :param end_date: End date for search data
+        :param bounding_box: Bounding box to constrain the search to
+        """
 
         number_of_granules = self.search_granules(
             start_date, end_date, bounding_box=bounding_box
