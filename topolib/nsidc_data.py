@@ -33,31 +33,20 @@ class IceSat2Data:
     CMR_COLLECTIONS_URL = f'{EARTHDATA_URL}/search/collections.json'
     GRANULE_SEARCH_URL = f'{EARTHDATA_URL}/search/granules'
 
-    BEAM_VARIABLES = [
-        '/land_ice_segments/atl06_quality_summary',
-        '/land_ice_segments/delta_time',
-        '/land_ice_segments/h_li',
-        '/land_ice_segments/h_li_sigma',
-        '/land_ice_segments/latitude',
-        '/land_ice_segments/longitude',
-        '/land_ice_segments/segment_id',
-        '/land_ice_segments/sigma_geo_h',
-        # # Other variables to add to coverage
-        # '/land_ice_segments/geophysical/r_eff',
-        # '/land_ice_segments/ground_track/x_atc',
-        # '/land_ice_segments/n_fit_photons',
-        # '/land_ice_segments/w_surface_window_final',
-        # '/land_ice_segments/h_rms_misft',
-        # '/land_ice_segments/h_robust_sprd',
-        # '/land_ice_segments/snr',
-        # '/land_ice_segments/snr_significance',
-        # '/land_ice_segments/dh_fit_dx',
-    ]
     BEAMS = ['gt1r', 'gt1l', 'gt2r', 'gt2l', 'gt3r', 'gt3l']
 
-    def __init__(self, user_id, password, **kwargs):
+    def __init__(self, user_id, password, beam_variables, **kwargs):
+        """
+
+        :param user_id: EarthData user ID
+        :param password: EarthData password
+        :param beam_variables: List of beam variables
+        :param kwargs: Optional:
+                        'product' - Overwrite the default ATL06
+        """
         self.session = EarthData(user_id, password)
         self.product_name = kwargs.get('product', self.PRODUCT_NAME)
+        self.beam_variables = beam_variables
         self.product_version_id = self.latest_version_id()
         self.test_authentication()
 
@@ -198,20 +187,17 @@ class IceSat2Data:
         else:
             return 0
 
-    def coverage_variables(self):
+    def beam_variables_params(self):
         """
-        Specify variables of interest
-        :return:
+        Return the beam variables that will be requested via parameter
+        :return: String
         """
         return ','.join(
             [
-                f'/{beam}{variable}' for variable in self.BEAM_VARIABLES
+                f'/{beam}{variable}' for variable in self.beam_variables
                 for beam in self.BEAMS
              ]
-        ) + '/ancillary_data/atlas_sdp_gps_epoch,\
-        /orbit_info/cycle_number,\
-        /orbit_info/rgt,\
-        /orbit_info/orbit_number'
+        )
 
     def order_data(
             self, email, destination_folder, start_date, end_date, bounding_box
@@ -245,7 +231,7 @@ class IceSat2Data:
             'time': time_range.replace('Z', ''),
             'bounding_box': bounding_box,
             'bbox': bounding_box,
-            'Coverage': self.coverage_variables(),
+            'Coverage': self.beam_variables_params(),
             'request_mode': self.REQUEST_MODE,
             'page_size': self.ORDER_PAGE_SIZE,
             'email': email,
