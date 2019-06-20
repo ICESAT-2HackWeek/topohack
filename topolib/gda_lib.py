@@ -2,7 +2,7 @@ import h5py
 import numpy as np
 import geopandas as gpd
 import pandas as pd
-from shapely.geometry import Point
+from shapely.geometry import Point, Polygon
 import rasterio
 from rasterio import features
 import rasterstats as rs
@@ -176,6 +176,8 @@ def buffer_sampler(ds,geom,buffer,val='median',ret_gdf=False):
     gt = ds.transform
     stat = val
     geom = geom.to_crs(ds.crs)
+    x_min,y_min,x_max,y_max = ds.bounds
+    geom = geom.cx[x_min:x_max, y_min:y_max]
     geom['geometry'] = geom.geometry.buffer(buffer)
     json_stats = rs.zonal_stats(geom,array,affine=gt,geojson_out=True,stats=stat,nodata=ndv)
     gdf = gpd.GeoDataFrame.from_features(json_stats)
@@ -190,4 +192,14 @@ def buffer_sampler(ds,geom,buffer,val='median',ret_gdf=False):
     else:
         out_file = [gdf.x_atc.values,gdf[call].values]
     return out_file
-
+def concat_gdf(gdf_list):
+    """
+    concatanate geodataframes into 1 geodataframe
+    Assumes all input geodataframes have same projection
+    Inputs : list of geodataframes in same projection
+    Output : 1 geodataframe containing everything having the same projection
+    """
+    #from https://stackoverflow.com/questions/48874113/concat-multiple-shapefiles-via-geopandas
+    gdf = pd.concat([gdf for gdf in gdf_list]).pipe(gpd.GeoDataFrame)
+    gdf.crs = (gdf_list[0].crs)
+    return gdf
