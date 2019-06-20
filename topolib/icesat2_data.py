@@ -4,6 +4,8 @@ import math
 import pprint
 import time
 import zipfile
+import os
+import shutil
 from statistics import mean
 from xml.etree import ElementTree
 
@@ -323,7 +325,7 @@ class IceSat2Data:
             order_id = orderlist[0]
             print('order ID: ', order_id)
 
-            status = self.get_order_status(order_id)
+            status, messages = self.get_order_status(order_id)
 
             print('Data request ', page_val, ' is submitting...')
             print('Initial request status is ', status)
@@ -362,6 +364,8 @@ class IceSat2Data:
                 print('Data request', page_val, 'is complete.')
             else:
                 print('Request failed.')
+                
+        self.clean_outputs(destination_folder)
 
     def get_capabilities(self):
         """
@@ -430,3 +434,14 @@ class IceSat2Data:
         print('WARNING - Currently not available')
         print('  Only applicable on ICESat-2 L3B products')
         pprint.pprint(projections)
+        
+    def clean_outputs(self, destination_folder):
+        #Clean up Outputs folder by removing individual granule folders 
+        for root, dirs, files in os.walk(destination_folder, topdown=False):
+            for file in files:
+                try:
+                    shutil.move(os.path.join(root, file), destination_folder)
+                except OSError:
+                    pass
+            for name in dirs:
+                os.rmdir(os.path.join(root, name))
