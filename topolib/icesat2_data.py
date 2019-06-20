@@ -207,12 +207,18 @@ class IceSat2Data:
         Return the beam variables that will be requested via parameter
         :return: String
         """
-        return ','.join(
-            [
+        params = []
+
+        if 'beams' in self.variables:
+            params = params + [
                 f'/{beam}{variable}' for variable in self.variables['beams']
                 for beam in self.BEAMS
-             ] + self.variables['other']
-        )
+            ]
+
+        if 'other' in self.variables:
+            params = params + self.variables['other']
+
+        return ','.join(params)
 
     def order_data(
             self, email, destination_folder, bounding_box, **kwargs
