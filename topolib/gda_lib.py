@@ -2,7 +2,7 @@ import h5py
 import numpy as np
 import geopandas as gpd
 import pandas as pd
-from shapely.geometry import Point
+from shapely.geometry import Point, Polygon
 import rasterio
 from rasterio import features
 import rasterstats as rs
