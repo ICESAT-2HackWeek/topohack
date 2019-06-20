@@ -35,7 +35,7 @@ class IceSat2Data:
 
     BEAMS = ['gt1r', 'gt1l', 'gt2r', 'gt2l', 'gt3r', 'gt3l']
 
-    def __init__(self, user_id, password, variables, **kwargs):
+    def __init__(self, user_id, password, **kwargs):
         """
 
         :param user_id: EarthData user ID
@@ -52,7 +52,7 @@ class IceSat2Data:
         """
         self.session = EarthData(user_id, password)
         self.product_name = kwargs.get('product', self.PRODUCT_NAME)
-        self._variables = variables
+        self._variables = kwargs.get('variables', None)
         self.product_version_id = self.latest_version_id()
         self.test_authentication()
         self._capabilities = None
