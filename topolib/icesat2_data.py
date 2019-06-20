@@ -76,17 +76,6 @@ class IceSat2Data:
             [entry['version_id'] for entry in response['feed']['entry']]
         )
 
-    def get_capabilities(self):
-        """
-        Query service capability URL
-        :return:
-        """
-        capability_url = \
-            f'{self.CAPABILITY_API}/' \
-            f'{self.product_name}.{self.product_version_id}.xml'
-
-        return self.session.get(capability_url)
-
     @staticmethod
     def time_range_params(start_date, end_date):
         """
@@ -332,11 +321,31 @@ class IceSat2Data:
             else:
                 print('Request failed.')
 
+    def get_capabilities(self):
+        """
+        Query service capability URL
+        :return:
+        """
+        capability_url = \
+            f'{self.CAPABILITY_API}/' \
+            f'{self.product_name}.{self.product_version_id}.xml'
+
+        return self.session.get(capability_url)
+
     @staticmethod
     def convert_from_xml(variable):
+        """
+        Parse the value for a variable from the capabilities XML
+
+        :param variable:
+        :return: String of variable in order parameter format.
+        """
         return '/' + '/'.join(variable.attrib['value'].split(':'))
 
     def show_variables(self):
+        """
+        Query capabilities endpoint and show available variables
+        """
         response = self.get_capabilities()
         root = ElementTree.fromstring(response.content)
 
@@ -348,6 +357,9 @@ class IceSat2Data:
         pprint.pprint(variables)
 
     def show_formats(self):
+        """
+        Query capabilities endpoint and show available download formats
+        """
         response = self.get_capabilities()
         root = ElementTree.fromstring(response.content)
 
@@ -360,6 +372,10 @@ class IceSat2Data:
         pprint.pprint(formats)
 
     def show_projections(self):
+        """
+        Query capabilities endpoint and show available data projections
+        *NOTE*: Not yet supported
+        """
         response = self.get_capabilities()
         root = ElementTree.fromstring(response.content)
 
