@@ -52,7 +52,7 @@ class IceSat2Data:
         """
         self.session = EarthData(user_id, password)
         self.product_name = kwargs.get('product', self.PRODUCT_NAME)
-        self.variables = variables
+        self._variables = variables
         self.product_version_id = self.latest_version_id()
         self.test_authentication()
         self._capabilities = None
@@ -60,6 +60,14 @@ class IceSat2Data:
     @property
     def capabilities(self):
         return self._capabilities
+
+    @property
+    def variables(self):
+        return self._variables
+
+    @variables.setter
+    def variables(self, value):
+        self._variables = value
 
     def test_authentication(self):
         """
@@ -367,12 +375,12 @@ class IceSat2Data:
         """
         root = self.get_capabilities()
 
-        variables = [
+        all_variables = [
             self.convert_from_xml(variable)
             for variable in root.findall('.//SubsetVariable')
         ]
 
-        pprint.pprint(variables)
+        pprint.pprint(all_variables)
 
     def show_formats(self):
         """
