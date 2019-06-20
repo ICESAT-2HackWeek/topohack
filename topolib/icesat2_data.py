@@ -245,6 +245,27 @@ class IceSat2Data:
 
         return request_status[0], process_info
 
+    def order_params(self, bounding_box, email, **kwargs):
+        bounding_box = self.bounding_box_params(bounding_box)
+
+        params = {
+            'short_name': self.product_name,
+            'version': self.product_version_id,
+            'bounding_box': bounding_box,
+            'bbox': bounding_box,
+            'Coverage': self.variables_param(),
+            'request_mode': self.REQUEST_MODE,
+            'page_size': self.ORDER_PAGE_SIZE,
+            'email': email,
+        }
+
+        time_range = self.time_range_params(kwargs.get('time_range', {}))
+        if time_range is not None:
+            params['temporal'] = time_range
+            params['time'] = time_range.replace('Z', '')
+
+        return params
+
     def order_data(
             self, email, destination_folder, bounding_box, **kwargs
     ):
@@ -267,23 +288,7 @@ class IceSat2Data:
         # Loop requests by this value
         page_num = math.ceil(number_of_granules / self.ORDER_PAGE_SIZE)
 
-        bounding_box = self.bounding_box_params(bounding_box)
-
-        params = {
-            'short_name': self.product_name,
-            'version': self.product_version_id,
-            'bounding_box': bounding_box,
-            'bbox': bounding_box,
-            'Coverage': self.variables_param(),
-            'request_mode': self.REQUEST_MODE,
-            'page_size': self.ORDER_PAGE_SIZE,
-            'email': email,
-        }
-
-        time_range = self.time_range_params(kwargs.get('time_range', {}))
-        if time_range is not None:
-            params['temporal'] = time_range
-            params['time'] = time_range.replace('Z', '')
+        params = self.order_params(bounding_box, email, **kwargs)
 
         # Request data service for each page number, and unzip outputs
         for i in range(page_num):
