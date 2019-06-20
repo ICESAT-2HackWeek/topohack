@@ -314,12 +314,12 @@ class IceSat2Data:
             # Raise bad request: Loop will stop for bad response code.
             request.raise_for_status()
 
-            # Look up order ID
-            orderlist = []
-            esir_root = ElementTree.fromstring(request.content)
+            response_root = ElementTree.fromstring(request.content)
 
-            for order in esir_root.findall("./order/"):
-                orderlist.append(order.text)
+            # Look up order ID
+            orderlist = [
+                order.text for order in response_root.findall("./order/")
+            ]
             order_id = orderlist[0]
             print('order ID: ', order_id)
 
