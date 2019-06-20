@@ -77,19 +77,25 @@ class IceSat2Data:
         )
 
     @staticmethod
-    def time_range_params(start_date, end_date):
+    def time_range_params(time_range):
         """
-        Input temporal range if you have a specific range, otherwise, this is unnecessary
+        Construct 'temporal' parameter for API call.
 
-        :param start_date: Start date in yyyy-MM-dd format
-        :param end_date: End date in yyyy-MM-dd format
+        :param time_range: dictionary with specific time range
+                           *Required_keys* - 'start_date', 'end_date'
+                           *Format* - 'yyyy-mm-dd'
 
-        :return: Time string for request parameter
+        :return: Time string for request parameter or None if required keys are
+                 missing.
         """
         start_time = '00:00:00'  # Start time in HH:mm:ss format
         end_time = '23:59:59'    # End time in HH:mm:ss format
 
-        return f'{start_date}T{start_time}Z,{end_date}T{end_time}Z'
+        if 'start_date' not in time_range or 'end_date' not in time_range:
+            return None
+
+        return f"{time_range['start_date']}T{start_time}Z," \
+            f"{time_range['end_date']}T{end_time}Z"
 
     @staticmethod
     def bounding_box_params(bounding_box):
@@ -106,27 +112,25 @@ class IceSat2Data:
             f"{bounding_box['UpperRight_Lon']}," \
             f"{bounding_box['UpperRight_Lat']}"
 
-    def search_granules(self, start_date, end_date, **kwargs):
+    def search_granules(self, **kwargs):
         """
         Search for granule with given dates and area.
         The area can be a bounding box for now.
 
-        :param start_date:
-        :param end_date:
-        :param kwargs: bounding_box as dictionary.
-                       Required keys - LowerLeft_Lon, LowerLeft_Lat
-                                       UpperRight_Lon, UpperRight_Lat
+        :param kwargs: 'bounding_box' as dictionary.
+                       *Required keys* - 'LowerLeft_Lon', 'LowerLeft_Lat'
+                                         'UpperRight_Lon', 'UpperRight_Lat'
+                       'time_range': dictionary with specific time range
+                       *Required_keys* - 'start_date', 'end_date'
+                       *Format* - 'yyyy-mm-dd'
 
         :return:
         """
-        temporal = self.time_range_params(start_date, end_date)
 
         if kwargs.get('bounding_box', None) is not None:
-            # bounding box input:
             params = {
                 'short_name': self.product_name,
                 'version': self.product_version_id,
-                'temporal': temporal,
                 'page_size': 100,
                 'page_num': 1,
                 'bounding_box': self.bounding_box_params(
@@ -134,11 +138,10 @@ class IceSat2Data:
                 ),
             }
         elif kwargs.get('polygon', None) is not None:
-            # If polygon input (either via coordinate pairs or shapefile/KML/KMZ):
+            # Polygon input (either via coordinate pairs or shapefile/KML/KMZ
             params = {
                 'short_name': self.product_name,
                 'version': self.product_version_id,
-                'temporal': temporal,
                 'page_size': 100,
                 'page_num': 1,
                 'polygon': kwargs.get('polygon'),
@@ -146,6 +149,10 @@ class IceSat2Data:
         else:
             print('Missing bounding box or polygon to search for')
             return -1
+
+        time_range = self.time_range_params(kwargs.get('time_range', {}))
+        if time_range is not None:
+            params['temporal'] = time_range
 
         granules = []
 
@@ -195,20 +202,21 @@ class IceSat2Data:
         )
 
     def order_data(
-            self, email, destination_folder, start_date, end_date, bounding_box
+            self, email, destination_folder, bounding_box, **kwargs
     ):
         """
         Submit a data order to the NSIDC.
 
         :param email: Email address for notifications
         :param destination_folder:  Folder to download the data to
-        :param start_date: Start date to search for data
-        :param end_date: End date for search data
         :param bounding_box: Bounding box to constrain the search to
+        :param kwargs: 'time_range': dictionary with specific time range
+                                     *Required_keys* - 'start_date', 'end_date'
+                                     *Format* - 'yyyy-mm-dd'
         """
 
         number_of_granules = self.search_granules(
-            start_date, end_date, bounding_box=bounding_box
+            bounding_box=bounding_box, **kwargs
         )
 
         # Determine number of pages based on page_size and total granules.
@@ -217,13 +225,9 @@ class IceSat2Data:
 
         bounding_box = self.bounding_box_params(bounding_box)
 
-        time_range = self.time_range_params(start_date, end_date)
-
-        subset_params = {
+        params = {
             'short_name': self.product_name,
             'version': self.product_version_id,
-            'temporal': time_range,
-            'time': time_range.replace('Z', ''),
             'bounding_box': bounding_box,
             'bbox': bounding_box,
             'Coverage': self.beam_variables_params(),
@@ -232,23 +236,28 @@ class IceSat2Data:
             'email': email,
         }
 
+        time_range = self.time_range_params(kwargs.get('time_range', {}))
+        if time_range is not None:
+            params['temporal'] = time_range
+            params['time'] = time_range.replace('Z', '')
+
         # Request data service for each page number, and unzip outputs
         for i in range(page_num):
             page_val = i + 1
             print('Order: ', page_val)
-            subset_params.update({'page_num': page_val})
+            params.update({'page_num': page_val})
 
             # Post polygon to API endpoint for polygon subsetting to subset
             # based on original, non-simplified KML file
             # shape_post = {'shapefile': open(kml_filepath, 'rb')}
             # request = self.session.post(
-            #   self.DATA_REQUEST_URL, params=subset_params, files=shape_post
+            #   self.DATA_REQUEST_URL, params=params, files=shape_post
             # )
 
             # For all other requests that do not utilized an uploaded polygon
             # file, use a get request instead of post:
             request = self.session.get(
-                self.DATA_REQUEST_URL, params=subset_params
+                self.DATA_REQUEST_URL, params=params
             )
 
             print('Request HTTP response: ', request.status_code)
