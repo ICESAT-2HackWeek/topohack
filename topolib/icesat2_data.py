@@ -35,18 +35,24 @@ class IceSat2Data:
 
     BEAMS = ['gt1r', 'gt1l', 'gt2r', 'gt2l', 'gt3r', 'gt3l']
 
-    def __init__(self, user_id, password, beam_variables, **kwargs):
+    def __init__(self, user_id, password, variables, **kwargs):
         """
 
         :param user_id: EarthData user ID
         :param password: EarthData password
-        :param beam_variables: List of beam variables
+        :param variables: dictionary with variables list for beams and other
+                          supported ones.
+                          Example:
+                            {
+                              'beams': '/land_ice_segments/h_li',
+                              'other': '/orbit_info/cycle_number'
+                            }
         :param kwargs: Optional:
                         'product' - Overwrite the default ATL06
         """
         self.session = EarthData(user_id, password)
         self.product_name = kwargs.get('product', self.PRODUCT_NAME)
-        self.beam_variables = beam_variables
+        self.variables = variables
         self.product_version_id = self.latest_version_id()
         self.test_authentication()
 
@@ -194,9 +200,9 @@ class IceSat2Data:
         """
         return ','.join(
             [
-                f'/{beam}{variable}' for variable in self.beam_variables
+                f'/{beam}{variable}' for variable in self.variables['beams']
                 for beam in self.BEAMS
-             ]
+             ] + self.variables['other']
         )
 
     def order_data(
