@@ -55,6 +55,11 @@ class IceSat2Data:
         self.variables = variables
         self.product_version_id = self.latest_version_id()
         self.test_authentication()
+        self._capabilities = None
+
+    @property
+    def capabilities(self):
+        return self._capabilities
 
     def test_authentication(self):
         """
@@ -336,12 +341,15 @@ class IceSat2Data:
 
         :return: Endpoint response parsed with ElementTree
         """
-        capability_url = \
-            f'{self.CAPABILITY_API}/' \
-            f'{self.product_name}.{self.product_version_id}.xml'
+        if self.capabilities is None:
+            capability_url = \
+                f'{self.CAPABILITY_API}/' \
+                f'{self.product_name}.{self.product_version_id}.xml'
 
-        response = self.session.get(capability_url)
-        return ElementTree.fromstring(response.content)
+            response = self.session.get(capability_url)
+            self._capabilities = ElementTree.fromstring(response.content)
+
+        return self.capabilities
 
     @staticmethod
     def convert_from_xml(variable):
