@@ -176,6 +176,8 @@ def buffer_sampler(ds,geom,buffer,val='median',ret_gdf=False):
     gt = ds.transform
     stat = val
     geom = geom.to_crs(ds.crs)
+    x_min,y_min,x_max,y_max = ds.bounds
+    geom = geom.cx[x_min:x_max, y_min:y_max]
     geom['geometry'] = geom.geometry.buffer(buffer)
     json_stats = rs.zonal_stats(geom,array,affine=gt,geojson_out=True,stats=stat,nodata=ndv)
     gdf = gpd.GeoDataFrame.from_features(json_stats)
