@@ -33,31 +33,26 @@ class IceSat2Data:
     CMR_COLLECTIONS_URL = f'{EARTHDATA_URL}/search/collections.json'
     GRANULE_SEARCH_URL = f'{EARTHDATA_URL}/search/granules'
 
-    BEAM_VARIABLES = [
-        '/land_ice_segments/atl06_quality_summary',
-        '/land_ice_segments/delta_time',
-        '/land_ice_segments/h_li',
-        '/land_ice_segments/h_li_sigma',
-        '/land_ice_segments/latitude',
-        '/land_ice_segments/longitude',
-        '/land_ice_segments/segment_id',
-        '/land_ice_segments/sigma_geo_h',
-        # # Other variables to add to coverage
-        # '/land_ice_segments/geophysical/r_eff',
-        # '/land_ice_segments/ground_track/x_atc',
-        # '/land_ice_segments/n_fit_photons',
-        # '/land_ice_segments/w_surface_window_final',
-        # '/land_ice_segments/h_rms_misft',
-        # '/land_ice_segments/h_robust_sprd',
-        # '/land_ice_segments/snr',
-        # '/land_ice_segments/snr_significance',
-        # '/land_ice_segments/dh_fit_dx',
-    ]
     BEAMS = ['gt1r', 'gt1l', 'gt2r', 'gt2l', 'gt3r', 'gt3l']
 
-    def __init__(self, user_id, password, **kwargs):
+    def __init__(self, user_id, password, variables, **kwargs):
+        """
+
+        :param user_id: EarthData user ID
+        :param password: EarthData password
+        :param variables: dictionary with variables list for beams and other
+                          supported ones.
+                          Example:
+                            {
+                              'beams': '/land_ice_segments/h_li',
+                              'other': '/orbit_info/cycle_number'
+                            }
+        :param kwargs: Optional:
+                        'product' - Overwrite the default ATL06
+        """
         self.session = EarthData(user_id, password)
         self.product_name = kwargs.get('product', self.PRODUCT_NAME)
+        self.variables = variables
         self.product_version_id = self.latest_version_id()
         self.test_authentication()
 
@@ -81,31 +76,26 @@ class IceSat2Data:
             [entry['version_id'] for entry in response['feed']['entry']]
         )
 
-    def get_capabilities(self):
-        """
-        Query service capability URL
-        :return:
-        """
-        capability_url = \
-            f'{self.CAPABILITY_API}/' \
-            f'{self.product_name}.{self.product_version_id}.xml'
-
-        return self.session.get(capability_url)
-
     @staticmethod
-    def time_range_params(start_date, end_date):
+    def time_range_params(time_range):
         """
-        Input temporal range if you have a specific range, otherwise, this is unnecessary
+        Construct 'temporal' parameter for API call.
 
-        :param start_date: Start date in yyyy-MM-dd format
-        :param end_date: End date in yyyy-MM-dd format
+        :param time_range: dictionary with specific time range
+                           *Required_keys* - 'start_date', 'end_date'
+                           *Format* - 'yyyy-mm-dd'
 
-        :return: Time string for request parameter
+        :return: Time string for request parameter or None if required keys are
+                 missing.
         """
         start_time = '00:00:00'  # Start time in HH:mm:ss format
         end_time = '23:59:59'    # End time in HH:mm:ss format
 
-        return f'{start_date}T{start_time}Z,{end_date}T{end_time}Z'
+        if 'start_date' not in time_range or 'end_date' not in time_range:
+            return None
+
+        return f"{time_range['start_date']}T{start_time}Z," \
+            f"{time_range['end_date']}T{end_time}Z"
 
     @staticmethod
     def bounding_box_params(bounding_box):
@@ -122,27 +112,25 @@ class IceSat2Data:
             f"{bounding_box['UpperRight_Lon']}," \
             f"{bounding_box['UpperRight_Lat']}"
 
-    def search_granules(self, start_date, end_date, **kwargs):
+    def search_granules(self, **kwargs):
         """
         Search for granule with given dates and area.
         The area can be a bounding box for now.
 
-        :param start_date:
-        :param end_date:
-        :param kwargs: bounding_box as dictionary.
-                       Required keys - LowerLeft_Lon, LowerLeft_Lat
-                                       UpperRight_Lon, UpperRight_Lat
+        :param kwargs: 'bounding_box' as dictionary.
+                       *Required keys* - 'LowerLeft_Lon', 'LowerLeft_Lat'
+                                         'UpperRight_Lon', 'UpperRight_Lat'
+                       'time_range': dictionary with specific time range
+                       *Required_keys* - 'start_date', 'end_date'
+                       *Format* - 'yyyy-mm-dd'
 
         :return:
         """
-        temporal = self.time_range_params(start_date, end_date)
 
         if kwargs.get('bounding_box', None) is not None:
-            # bounding box input:
             params = {
                 'short_name': self.product_name,
                 'version': self.product_version_id,
-                'temporal': temporal,
                 'page_size': 100,
                 'page_num': 1,
                 'bounding_box': self.bounding_box_params(
@@ -150,11 +138,10 @@ class IceSat2Data:
                 ),
             }
         elif kwargs.get('polygon', None) is not None:
-            # If polygon input (either via coordinate pairs or shapefile/KML/KMZ):
+            # Polygon input (either via coordinate pairs or shapefile/KML/KMZ
             params = {
                 'short_name': self.product_name,
                 'version': self.product_version_id,
-                'temporal': temporal,
                 'page_size': 100,
                 'page_num': 1,
                 'polygon': kwargs.get('polygon'),
@@ -162,6 +149,10 @@ class IceSat2Data:
         else:
             print('Missing bounding box or polygon to search for')
             return -1
+
+        time_range = self.time_range_params(kwargs.get('time_range', {}))
+        if time_range is not None:
+            params['temporal'] = time_range
 
         granules = []
 
@@ -198,36 +189,34 @@ class IceSat2Data:
         else:
             return 0
 
-    def coverage_variables(self):
+    def beam_variables_params(self):
         """
-        Specify variables of interest
-        :return:
+        Return the beam variables that will be requested via parameter
+        :return: String
         """
         return ','.join(
             [
-                f'/{beam}{variable}' for variable in self.BEAM_VARIABLES
+                f'/{beam}{variable}' for variable in self.variables['beams']
                 for beam in self.BEAMS
-             ]
-        ) + '/ancillary_data/atlas_sdp_gps_epoch,\
-        /orbit_info/cycle_number,\
-        /orbit_info/rgt,\
-        /orbit_info/orbit_number'
+             ] + self.variables['other']
+        )
 
     def order_data(
-            self, email, destination_folder, start_date, end_date, bounding_box
+            self, email, destination_folder, bounding_box, **kwargs
     ):
         """
         Submit a data order to the NSIDC.
 
         :param email: Email address for notifications
         :param destination_folder:  Folder to download the data to
-        :param start_date: Start date to search for data
-        :param end_date: End date for search data
         :param bounding_box: Bounding box to constrain the search to
+        :param kwargs: 'time_range': dictionary with specific time range
+                                     *Required_keys* - 'start_date', 'end_date'
+                                     *Format* - 'yyyy-mm-dd'
         """
 
         number_of_granules = self.search_granules(
-            start_date, end_date, bounding_box=bounding_box
+            bounding_box=bounding_box, **kwargs
         )
 
         # Determine number of pages based on page_size and total granules.
@@ -236,38 +225,39 @@ class IceSat2Data:
 
         bounding_box = self.bounding_box_params(bounding_box)
 
-        time_range = self.time_range_params(start_date, end_date)
-
-        subset_params = {
+        params = {
             'short_name': self.product_name,
             'version': self.product_version_id,
-            'temporal': time_range,
-            'time': time_range.replace('Z', ''),
             'bounding_box': bounding_box,
             'bbox': bounding_box,
-            'Coverage': self.coverage_variables(),
+            'Coverage': self.beam_variables_params(),
             'request_mode': self.REQUEST_MODE,
             'page_size': self.ORDER_PAGE_SIZE,
             'email': email,
         }
 
+        time_range = self.time_range_params(kwargs.get('time_range', {}))
+        if time_range is not None:
+            params['temporal'] = time_range
+            params['time'] = time_range.replace('Z', '')
+
         # Request data service for each page number, and unzip outputs
         for i in range(page_num):
             page_val = i + 1
             print('Order: ', page_val)
-            subset_params.update({'page_num': page_val})
+            params.update({'page_num': page_val})
 
             # Post polygon to API endpoint for polygon subsetting to subset
             # based on original, non-simplified KML file
             # shape_post = {'shapefile': open(kml_filepath, 'rb')}
             # request = self.session.post(
-            #   self.DATA_REQUEST_URL, params=subset_params, files=shape_post
+            #   self.DATA_REQUEST_URL, params=params, files=shape_post
             # )
 
             # For all other requests that do not utilized an uploaded polygon
             # file, use a get request instead of post:
             request = self.session.get(
-                self.DATA_REQUEST_URL, params=subset_params
+                self.DATA_REQUEST_URL, params=params
             )
 
             print('Request HTTP response: ', request.status_code)
@@ -340,13 +330,34 @@ class IceSat2Data:
             else:
                 print('Request failed.')
 
+    def get_capabilities(self):
+        """
+        Query service capability URL
+
+        :return: Endpoint response parsed with ElementTree
+        """
+        capability_url = \
+            f'{self.CAPABILITY_API}/' \
+            f'{self.product_name}.{self.product_version_id}.xml'
+
+        response = self.session.get(capability_url)
+        return ElementTree.fromstring(response.content)
+
     @staticmethod
     def convert_from_xml(variable):
+        """
+        Parse the value for a variable from the capabilities XML
+
+        :param variable:
+        :return: String of variable in order parameter format.
+        """
         return '/' + '/'.join(variable.attrib['value'].split(':'))
 
     def show_variables(self):
-        response = self.get_capabilities()
-        root = ElementTree.fromstring(response.content)
+        """
+        Query capabilities endpoint and show available variables
+        """
+        root = self.get_capabilities()
 
         variables = [
             self.convert_from_xml(variable)
@@ -356,8 +367,10 @@ class IceSat2Data:
         pprint.pprint(variables)
 
     def show_formats(self):
-        response = self.get_capabilities()
-        root = ElementTree.fromstring(response.content)
+        """
+        Query capabilities endpoint and show available download formats
+        """
+        root = self.get_capabilities()
 
         formats = [
             variable.attrib['value'] for variable in root.findall('.//Format')
@@ -368,8 +381,11 @@ class IceSat2Data:
         pprint.pprint(formats)
 
     def show_projections(self):
-        response = self.get_capabilities()
-        root = ElementTree.fromstring(response.content)
+        """
+        Query capabilities endpoint and show available data projections
+        *NOTE*: Not yet supported
+        """
+        root = self.get_capabilities()
 
         projections = root.find('.//Projections').attrib['normalProj'].split(',')
         projections.remove('')

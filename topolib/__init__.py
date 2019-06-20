@@ -1,5 +1,5 @@
 from .earth_data import EarthData
-from .nsidc_data import IceSat2Data
+from .icesat2_data import IceSat2Data
 
 __all__ = [
     'EarthData',
