@@ -35,7 +35,7 @@ class IceSat2Data:
 
     BEAMS = ['gt1r', 'gt1l', 'gt2r', 'gt2l', 'gt3r', 'gt3l']
 
-    def __init__(self, user_id, password, variables, **kwargs):
+    def __init__(self, user_id, password, **kwargs):
         """
 
         :param user_id: EarthData user ID
@@ -52,9 +52,22 @@ class IceSat2Data:
         """
         self.session = EarthData(user_id, password)
         self.product_name = kwargs.get('product', self.PRODUCT_NAME)
-        self.variables = variables
+        self._variables = kwargs.get('variables', None)
         self.product_version_id = self.latest_version_id()
         self.test_authentication()
+        self._capabilities = None
+
+    @property
+    def capabilities(self):
+        return self._capabilities
+
+    @property
+    def variables(self):
+        return self._variables
+
+    @variables.setter
+    def variables(self, value):
+        self._variables = value
 
     def test_authentication(self):
         """
@@ -189,17 +202,23 @@ class IceSat2Data:
         else:
             return 0
 
-    def beam_variables_params(self):
+    def variables_param(self):
         """
         Return the beam variables that will be requested via parameter
         :return: String
         """
-        return ','.join(
-            [
+        params = []
+
+        if 'beams' in self.variables:
+            params = params + [
                 f'/{beam}{variable}' for variable in self.variables['beams']
                 for beam in self.BEAMS
-             ] + self.variables['other']
-        )
+            ]
+
+        if 'other' in self.variables:
+            params = params + self.variables['other']
+
+        return ','.join(params)
 
     def order_data(
             self, email, destination_folder, bounding_box, **kwargs
@@ -230,7 +249,7 @@ class IceSat2Data:
             'version': self.product_version_id,
             'bounding_box': bounding_box,
             'bbox': bounding_box,
-            'Coverage': self.beam_variables_params(),
+            'Coverage': self.variables_param(),
             'request_mode': self.REQUEST_MODE,
             'page_size': self.ORDER_PAGE_SIZE,
             'email': email,
@@ -336,12 +355,15 @@ class IceSat2Data:
 
         :return: Endpoint response parsed with ElementTree
         """
-        capability_url = \
-            f'{self.CAPABILITY_API}/' \
-            f'{self.product_name}.{self.product_version_id}.xml'
+        if self.capabilities is None:
+            capability_url = \
+                f'{self.CAPABILITY_API}/' \
+                f'{self.product_name}.{self.product_version_id}.xml'
 
-        response = self.session.get(capability_url)
-        return ElementTree.fromstring(response.content)
+            response = self.session.get(capability_url)
+            self._capabilities = ElementTree.fromstring(response.content)
+
+        return self.capabilities
 
     @staticmethod
     def convert_from_xml(variable):
@@ -359,12 +381,12 @@ class IceSat2Data:
         """
         root = self.get_capabilities()
 
-        variables = [
+        all_variables = [
             self.convert_from_xml(variable)
             for variable in root.findall('.//SubsetVariable')
         ]
 
-        pprint.pprint(variables)
+        pprint.pprint(all_variables)
 
     def show_formats(self):
         """
