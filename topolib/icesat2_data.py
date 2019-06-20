@@ -220,6 +220,52 @@ class IceSat2Data:
 
         return ','.join(params)
 
+    def get_order_status(self, order_id):
+        """
+        Query the status API for given order.
+
+        :param order_id
+
+        :return: String of the order status
+        """
+        # Create status URL
+        status_url = f'{self.DATA_REQUEST_URL}/{order_id}'
+        # Find order status
+        order_status_response = self.session.get(status_url)
+
+        order_status_response.raise_for_status()
+        root = ElementTree.fromstring(order_status_response.content)
+
+        request_status = [
+            status.text for status in root.findall("./requestStatus/")
+        ]
+        process_info = [
+            info.text for info in root.findall("./processInfo/")
+        ]
+
+        return request_status[0], process_info
+
+    def order_params(self, bounding_box, email, **kwargs):
+        bounding_box = self.bounding_box_params(bounding_box)
+
+        params = {
+            'short_name': self.product_name,
+            'version': self.product_version_id,
+            'bounding_box': bounding_box,
+            'bbox': bounding_box,
+            'Coverage': self.variables_param(),
+            'request_mode': self.REQUEST_MODE,
+            'page_size': self.ORDER_PAGE_SIZE,
+            'email': email,
+        }
+
+        time_range = self.time_range_params(kwargs.get('time_range', {}))
+        if time_range is not None:
+            params['temporal'] = time_range
+            params['time'] = time_range.replace('Z', '')
+
+        return params
+
     def order_data(
             self, email, destination_folder, bounding_box, **kwargs
     ):
@@ -242,23 +288,7 @@ class IceSat2Data:
         # Loop requests by this value
         page_num = math.ceil(number_of_granules / self.ORDER_PAGE_SIZE)
 
-        bounding_box = self.bounding_box_params(bounding_box)
-
-        params = {
-            'short_name': self.product_name,
-            'version': self.product_version_id,
-            'bounding_box': bounding_box,
-            'bbox': bounding_box,
-            'Coverage': self.variables_param(),
-            'request_mode': self.REQUEST_MODE,
-            'page_size': self.ORDER_PAGE_SIZE,
-            'email': email,
-        }
-
-        time_range = self.time_range_params(kwargs.get('time_range', {}))
-        if time_range is not None:
-            params['temporal'] = time_range
-            params['time'] = time_range.replace('Z', '')
+        params = self.order_params(bounding_box, email, **kwargs)
 
         # Request data service for each page number, and unzip outputs
         for i in range(page_num):
@@ -284,67 +314,51 @@ class IceSat2Data:
             # Raise bad request: Loop will stop for bad response code.
             request.raise_for_status()
 
+            response_root = ElementTree.fromstring(request.content)
+
             # Look up order ID
-            orderlist = []
-            esir_root = ElementTree.fromstring(request.content)
+            orderlist = [
+                order.text for order in response_root.findall("./order/")
+            ]
+            order_id = orderlist[0]
+            print('order ID: ', order_id)
 
-            for order in esir_root.findall("./order/"):
-                orderlist.append(order.text)
-            orderID = orderlist[0]
-            print('order ID: ', orderID)
+            status = self.get_order_status(order_id)
 
-            # Create status URL
-            status_url = f'{self.DATA_REQUEST_URL}/{orderID}'
-            # Find order status
-            request_response = self.session.get(status_url)
-
-            # Raise bad request: Loop will stop for bad response code.
-            request_response.raise_for_status()
-            request_root = ElementTree.fromstring(request_response.content)
-            statuslist = []
-            for status in request_root.findall("./requestStatus/"):
-                statuslist.append(status.text)
-            status = statuslist[0]
             print('Data request ', page_val, ' is submitting...')
             print('Initial request status is ', status)
 
+            messages = []
             # Continue to loop while request is still processing
             while status == 'pending' or status == 'processing':
                 print('Status is not complete. Trying again.')
                 time.sleep(10)
-                loop_response = self.session.get(status_url)
 
-                # Raise bad request: Loop will stop for bad response code.
-                loop_response.raise_for_status()
-                loop_root = ElementTree.fromstring(loop_response.content)
+                status, messages = self.get_order_status(order_id)
 
-                # Find status
-                statuslist = []
-                for status in loop_root.findall("./requestStatus/"):
-                    statuslist.append(status.text)
-                status = statuslist[0]
                 print('Retry request status is: ', status)
                 if status == 'pending' or status == 'processing':
                     continue
 
             # Order can either complete, complete_with_errors, or fail:
             # Provide complete_with_errors error message:
-            if status == 'complete_with_errors' or status == 'failed':
-                messagelist = []
-                for message in loop_root.findall("./processInfo/"):
-                    messagelist.append(message.text)
+            if (status == 'complete_with_errors' or status == 'failed') \
+                    and len(messages) > 0:
                 print('error messages:')
-                pprint.pprint(messagelist)
+                pprint.pprint(messages)
 
-            # Download zipped order if status is complete or complete_with_errors
+            # Download zipped order if status is complete or
+            # complete_with_errors
             if status == 'complete' or status == 'complete_with_errors':
-                download_url = self.DOWNLOAD_URL + orderID + '.zip'
+                download_url = self.DOWNLOAD_URL + order_id + '.zip'
+
                 print('Beginning download of zipped output...')
                 zip_response = self.session.get(download_url)
-                # Raise bad request: Loop will stop for bad response code.
                 zip_response.raise_for_status()
+
                 with zipfile.ZipFile(io.BytesIO(zip_response.content)) as z:
                     z.extractall(destination_folder)
+
                 print('Data request', page_val, 'is complete.')
             else:
                 print('Request failed.')
