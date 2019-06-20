@@ -333,13 +333,15 @@ class IceSat2Data:
     def get_capabilities(self):
         """
         Query service capability URL
-        :return:
+
+        :return: Endpoint response parsed with ElementTree
         """
         capability_url = \
             f'{self.CAPABILITY_API}/' \
             f'{self.product_name}.{self.product_version_id}.xml'
 
-        return self.session.get(capability_url)
+        response = self.session.get(capability_url)
+        return ElementTree.fromstring(response.content)
 
     @staticmethod
     def convert_from_xml(variable):
@@ -355,8 +357,7 @@ class IceSat2Data:
         """
         Query capabilities endpoint and show available variables
         """
-        response = self.get_capabilities()
-        root = ElementTree.fromstring(response.content)
+        root = self.get_capabilities()
 
         variables = [
             self.convert_from_xml(variable)
@@ -369,8 +370,7 @@ class IceSat2Data:
         """
         Query capabilities endpoint and show available download formats
         """
-        response = self.get_capabilities()
-        root = ElementTree.fromstring(response.content)
+        root = self.get_capabilities()
 
         formats = [
             variable.attrib['value'] for variable in root.findall('.//Format')
@@ -385,8 +385,7 @@ class IceSat2Data:
         Query capabilities endpoint and show available data projections
         *NOTE*: Not yet supported
         """
-        response = self.get_capabilities()
-        root = ElementTree.fromstring(response.content)
+        root = self.get_capabilities()
 
         projections = root.find('.//Projections').attrib['normalProj'].split(',')
         projections.remove('')
