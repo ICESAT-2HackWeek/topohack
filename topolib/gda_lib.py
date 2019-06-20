@@ -3,6 +3,10 @@ import numpy as np
 import geopandas as gpd
 import pandas as pd
 from shapely.geometry import Point
+import rasterio
+from rasterio import features
+import rasterstats as rs
+
 #this function is from Ben
 def ATL06_to_dict(filename, dataset_dict):
     """
@@ -86,4 +90,61 @@ def ATL06_2_gdf(ATL06_fn,dataset_dict):
         i = i+1
     gdf_final = gpd.GeoDataFrame(df_final,geometry='geometry',crs={'init':'epsg:4326'})
     return gdf_final
+
+def get_ndv(ds):
+    no_data = ds.nodatavals[0]
+    if no_data == None:
+        #this means no data is not set in tif tag, nead to cheat it from raster
+        ndv = ds.read(1)[0,0]
+    else:
+        ndv = no_data
+    return ndv
+
+def sample_near_nbor(ds,geom):
+    """
+    sample values from raster at the given ICESat-2 points
+    using nearest neighbour algorithm
+    Inputs are a rasterio dataset and a geodataframe of ice_sat2 points
+    """
+    # reproject the shapefile to raster projection
+    x_min,y_min,x_max,y_max = ds.bounds
+    geom = geom.to_crs(ds.crs)
+    #filter geom outside bounds
+    geom = geom.cx[x_min:x_max,y_min:y_max]
+    X = geom.geometry.x.values
+    Y = geom.geometry.y.values
+    xy = np.vstack((X,Y)).T
+    sampled_values = np.array(list(ds.sample(xy)))
+    no_data = get_ndv(ds)
+    sample = np.ma.fix_invalid(np.reshape(sampled_values,np.shape(sampled_values)[0]))
+    sample = np.ma.masked_equal(sample,no_data)
+    x_atc = np.ma.array(geom.x_atc.values,mask = sample.mask)
+    return x_atc, sample
+
+def buffer_sampler(ds,geom,buffer,val='median',ret_gdf=False):
+    """
+    sample values from raster at the given ICESat-2 points
+    using a buffer distance, and return median/mean or a full gdf ( if return gdf=True)
+    Inputs = rasterio dataset, Geodataframe containing points, buffer distance, output value = median/mean (default median)
+    and output format list of x_atc,output_value arrays (default) or  full gdf
+    """
+    ndv = get_ndv(ds)
+    array = ds.read(1)
+    gt = ds.transform
+    stat = val
+    geom = geom.to_crs(ds.crs)
+    geom['geometry'] = geom.geometry.buffer(buffer)
+    json_stats = rs.zonal_stats(geom,array,affine=gt,geojson_out=True,stats=stat,nodata=ndv)
+    gdf = gpd.GeoDataFrame.from_features(json_stats)
+    if val =='median':
+        gdf = gdf.rename(columns={'median':'med'})
+        call = 'med'
+    else:
+        gdf = gdf.rename(columns={'mean':'avg'})
+        call = 'avg'
+    if ret_gdf:
+        out_file = gdf
+    else:
+        out_file = [gdf.x_atc.values,gdf[call].values]
+    return out_file
 
