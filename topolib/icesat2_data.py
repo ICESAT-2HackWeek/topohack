@@ -202,7 +202,7 @@ class IceSat2Data:
         else:
             return 0
 
-    def beam_variables_params(self):
+    def variables_param(self):
         """
         Return the beam variables that will be requested via parameter
         :return: String
@@ -249,7 +249,7 @@ class IceSat2Data:
             'version': self.product_version_id,
             'bounding_box': bounding_box,
             'bbox': bounding_box,
-            'Coverage': self.beam_variables_params(),
+            'Coverage': self.variables_param(),
             'request_mode': self.REQUEST_MODE,
             'page_size': self.ORDER_PAGE_SIZE,
             'email': email,
