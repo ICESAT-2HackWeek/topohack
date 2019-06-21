@@ -1,8 +1,24 @@
-# topohack
+# Topohack
 Taking ICESat-2 to the mountains: a workflow using satellite laser altimetry to resolve topography over complex terrain  
 
 ### Data Science Objective
 Compare and evaluate ICESat-2 data with high resolution DEMs (airborne lidar/satellite stereo) collected at lower latitudes over bare ground. 
+
+## Collaborators  
+  Vibhor Agarwal  
+  Michelle Hu  
+  Friedrich Knuth  
+  HP Marshall  
+  Justin Pflug  
+  Mariama Dryak  
+  Will Kochtitzky  
+
+### Team Lead:
+  Shashank Bhushan  
+
+### Data Science Leads:  
+  Joachim Meyer  
+  Amy Steicker  
 
 ### Datasets
 - ICESat-2 [ATL06](https://nsidc.org/data/atl06?qt-data_set_tabs=3#qt-data_set_tabs) (20 m resolution)
