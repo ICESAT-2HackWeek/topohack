@@ -391,7 +391,7 @@ class IceSat2Data:
         :param variable:
         :return: String of variable in order parameter format.
         """
-        return '/' + '/'.join(variable.attrib['value'].split(':'))
+        return list(filter(None, variable.attrib['value'].split(':')))
 
     def show_variables(self):
         """
@@ -404,7 +404,19 @@ class IceSat2Data:
             for variable in root.findall('.//SubsetVariable')
         ]
 
-        pprint.pprint(all_variables)
+        variables = {'beams': [], 'other': []}
+
+        for variable in all_variables:
+            if variable[0] in self.BEAMS:
+                variable = '/'.join(variable[1:])
+                variables['beams'].append(variable)
+            else:
+                variables['other'].append('/'.join(variable))
+
+        variables['beams'] = sorted(list(set(variables['beams'])))
+        variables['other'] = sorted(list(set(variables['other'])))
+
+        pprint.pprint(variables)
 
     def show_formats(self):
         """
