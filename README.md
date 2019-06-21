@@ -1,7 +1,7 @@
 # Topohack
 Taking ICESat-2 to the mountains: a workflow using satellite laser altimetry to resolve topography over complex terrain  
 
-### Data Science Objective
+### General Objective
 Compare and evaluate ICESat-2 data with high resolution DEMs (airborne lidar/satellite stereo) collected at lower latitudes over bare ground. 
 
 ## Collaborators  
@@ -36,7 +36,7 @@ Compare and evaluate ICESat-2 data with high resolution DEMs (airborne lidar/sat
 - Python: geopandas, rasterio, numpy, scipy, pandas, [pygeotools](https://github.com/dshean/pygeotools), [demcoreg](https://github.com/dshean/demcoreg)
 - [NASA Ames Stereo Pipeline](https://github.com/NeoGeographyToolkit/StereoPipeline)
 
-### Goals
+### High-level Goals
 - Learn how to download the ICESat-2 data by lat lon bounding box
 - Create library with some basic convenience functions
 - Explore [OpenAltimetry](https://openaltimetry.org/data/icesat2/) and utility with multiple locations and time periods
