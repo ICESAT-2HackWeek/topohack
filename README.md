@@ -36,7 +36,7 @@ Compare and evaluate ICESat-2 data with high resolution DEMs (airborne lidar/sat
 - Python: geopandas, rasterio, numpy, scipy, pandas, [pygeotools](https://github.com/dshean/pygeotools), [demcoreg](https://github.com/dshean/demcoreg)
 - [NASA Ames Stereo Pipeline](https://github.com/NeoGeographyToolkit/StereoPipeline)
 
-### Tasks
+### Goals
 - Learn how to download the ICESat-2 data by lat lon bounding box
 - Create library with some basic convenience functions
 - Explore [OpenAltimetry](https://openaltimetry.org/data/icesat2/) and utility with multiple locations and time periods
@@ -49,5 +49,6 @@ Compare and evaluate ICESat-2 data with high resolution DEMs (airborne lidar/sat
 ### Study Sites:
 - Dependent on ICESat-2 coverage.
 - Potential study sites: Cascades and Olympic Ranges (western WA), Rocky Mountains (CO), High Mountain Asia, Grand Mesa (CO)
-### Other Questions 
-Are notebooks available that show how the comparison between IceBridge lidar and ICESat-2 tracks was done?
+
+### Team Wiki
+Further information can be found on our [team wiki page](https://github.com/ICESAT-2HackWeek/topohack/wiki)
