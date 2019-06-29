@@ -52,3 +52,7 @@ Compare and evaluate ICESat-2 data with high resolution DEMs (airborne lidar/sat
 
 ### Team Wiki
 Further information can be found on our [team wiki page](https://github.com/ICESAT-2HackWeek/topohack/wiki)
+
+
+### Test Drive
+To launch this repository on a Pangeo Binder instance and try out topolib using the examples under notebooks/, click here: [![Binder](https://binder.pangeo.io/badge_logo.svg)](https://binder.pangeo.io/v2/gh/friedrichknuth/topohack.git/master)

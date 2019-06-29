@@ -1,0 +1,21 @@
+name: icesat2
+channels:
+  - conda-forge
+dependencies:
+  - h5py
+  - numpy
+  - matplotlib
+  - scipy
+  - xarray
+  - netcdf4
+  - dask
+  - h5netcdf
+  - rasterstats
+  - fiona
+  - rasterio
+  - geopandas
+  - lxml
+  - pip
+  - pip:
+    - "--editable=git+https://github.com/friedrichknuth/driveanon.git#egg=driveanon"
+    - "--editable=git+https://github.com/ICESAT-2HackWeek/topohack.git#egg=topohack"
